@@ -1,0 +1,61 @@
+name: Scrape Latest Data (Go + chromedp)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 23 * * *' # 23:30 UTC = 06:30 WIB
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      TZ: 'Asia/Jakarta'
+      CHROME_BIN: /usr/bin/google-chrome
+
+    steps:
+      - name: 🧩 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🧠 Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: 🧰 Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: 📦 Install dependencies
+        run: go mod tidy
+
+      - name: 🕸️ Run scraper
+        run: |
+          echo "⏰ Current time:"
+          date
+          echo "🌍 Timezone: $TZ"
+          echo "📅 Schedule: 30 23 * * * (23:30 UTC = 06:30 WIB)"
+          echo "🔍 Event type: ${{ github.event_name }}"
+          echo "📊 Workflow run ID: ${{ github.run_id }}"
+          echo "📋 Repository: ${{ github.repository }}"
+          echo "🌐 Next scheduled run: Tomorrow at 06:30 WIB"
+          go run main.go
+
+      - name: 💾 Commit and push if data changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: auto-scrape new data (Go chromedp)'
+          file_pattern: 'public/data.json'
+          commit_user_name: 'GitHub Actions'
+          commit_user_email: 'actions@github.com'
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+
+      - name: 🎯 Manual Trigger Test
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "🎯 Manual trigger berhasil!"
+          echo "⏰ Waktu: $(date)"
+          echo "📅 Schedule akan aktif besok jam 06:30 WIB"
